@@ -1,15 +1,23 @@
 import {Resolver} from 'did-resolver'
 import getResolver from 'ethr-did-resolver'
 import { EthrDID } from 'ethr-did'
-import {  isAddress, JsonRpcProvider, JsonRpcSigner } from 'ethers' 
+import { JsonRpcSigner } from 'ethers' 
 import { computePublicKey } from '@ethersproject/signing-key'
 //import wallet from 'ethereumjs-wallet'
 const didJWT = require('did-jwt');
-const config = require("./config.json");
-//habdle the creation of VC with atomic method for sleective disclosure
-import * as atomic from './atomic/main.js'
+//this is necessary to retrive the privatekeys from hardhat accounts
+import { config } from "hardhat";
+//handle the creation of VC with atomic method for sleective disclosure
+import * as Atomic from './atomic/Atomic';
 const { ethers } = require("hardhat");
-  
+//this is necessary for ot... basically simulates communication with a dummy socket curtesy of wyatt-howe
+var IO = require('./OT/io-example.js');
+
+
+const maxClaims = 4;
+const Runs = 1;
+const disclosedClaimsPercent = 0.75;
+
 function getDisclosedClaimsNumber(fract:number,claimsTot:number){
     if (fract==1){
         return claimsTot;
@@ -24,8 +32,6 @@ function getDisclosedClaimsNumber(fract:number,claimsTot:number){
 
 //setup the provider 
 console.log('Connecting to provider...');
-const Web3HttpProvider = require('web3-providers-http')
-// ...
  
 const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
 console.log('Connected to the provider');
@@ -85,6 +91,8 @@ const createDid = async (RegAddress:string, accountAddress:JsonRpcSigner, index:
         provider});
 
     console.log("DID created:", ethrDid.did);
+
+	return ethrDid;
 }
 
 //i only want this to generate atomic VC, timing stuff later
@@ -92,28 +100,68 @@ const test = async (accounts : JsonRpcSigner[]) => {
 	let issuerAddress=accounts[0];
 	let subjectAddress=accounts[1];
 	let verifierAddress=accounts[2];
+
 	console.log("Issuer EOA:"+issuerAddress);
 	console.log("Subject EOA:"+subjectAddress);
 	console.log("Verifier EOA:"+verifierAddress);
+
 	let issuerDID = await createDid(RegAddress, issuerAddress, 0);
 	let subjectDID = await createDid(RegAddress, subjectAddress, 1);
 	let verifierDID = await createDid(RegAddress, verifierAddress, 2);
+    if (!issuerDID) {
+        console.error("error creating Issuer DID");
+        return;
+    }if (!subjectDID) {
+        console.error("error creating subject DID");
+        return;
+    }if (!verifierDID) {
+        console.error("error creating verifier DID");
+        return;
+    }
+    
 
-
-	for (let i = 1; i < config.maxClaims; i++) {
+/*
+    //disclosedClaimsPercent is a percenteage 0.75 -> 75%
+	for (let i = 1; i < maxClaims; i++) {
 		//Subject create the VP
-		const disclosedClaims=getDisclosedClaimsNumber(config.disclosedClaims, Math.pow(2, i));
-		for (let j = 0; j <config.runs; j++) {
+		const disclosedClaims=getDisclosedClaimsNumber(disclosedClaimsPercent, Math.pow(2, i));
+		for (let j = 0; j < Runs; j++) {
 			//Issuer Create VC
-			let vcResult=await atomic.issueVC(issuerDID,subjectDID,i);
+            console.log("---issuing new vc---");
+			let vcResult= await Atomic.issueVC(issuerDID,subjectDID,i);
 			//Subject verify the VC
-			let timeVerifyVC=await atomic.verifyVC(vcResult.jwt,didResolver);
-			let vpResult= await atomic.issueCompressedVP(vcResult.jwt, disclosedClaims,subjectDID);
+            console.log("---verifing vc---");
+			await Atomic.verifyVC(vcResult,didResolver);
+            //Subject creates VP
+            console.log("---issuing new vp---");
+			let vpResult= await Atomic.issueVP(vcResult,disclosedClaims,subjectDID);
 			//Verifier verify the VP
-			let timeverifyVP=await atomic.verifyCompressedVP(vpResult.jwtVP,didResolver);
+            console.log("---verifing vp---");
+			await Atomic.verifyVP(vpResult,didResolver);
 		}
 		
 	}
+*/       
+
+    //ok all good but now we want to apply ot, no v presentation 
+    //print on a file? maybe? if i will test the performance difference...
+    //also it would be nice if k-out of-n is possible, for now 1-out of-n
+    const OT = require('1-out-of-n')(IO);
+    const op_id = 'ot_atomic_vc'; 
+    
+    for (let i = 1; i < maxClaims; i++) {
+        //Issuer Create VC
+        console.log("---issuing new vc---");
+        let vcResult= await Atomic.issueVC(issuerDID,subjectDID,i);
+        //Subject verify the VC
+        console.log("---verifing vc---");
+        await Atomic.verifyVC(vcResult,didResolver);
+    }
+
+    OT.send()
+    OT.receive()
+    
+
 }
 
 provider.listAccounts().then((accounts: JsonRpcSigner[]) => {
