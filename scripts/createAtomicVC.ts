@@ -1,23 +1,16 @@
 import {Resolver} from 'did-resolver'
 import getResolver from 'ethr-did-resolver'
 import { EthrDID } from 'ethr-did'
-import { ethers, isAddress, JsonRpcProvider, JsonRpcSigner } from 'ethers' 
+import {  isAddress, JsonRpcProvider, JsonRpcSigner } from 'ethers' 
 import { computePublicKey } from '@ethersproject/signing-key'
-//import { ES256KSigner } from 'did-jwt'
-// import pkg, { verifyCredential, normalizeCredential, validateCredentialPayload } from 'did-jwt-vc';
-// const { createVerifiableCredentialJwt, createVerifiablePresentationJwt, verifyPresentation } = pkg;
-import bip39 from 'bip39'
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const hdkey = require('ethereumjs-wallet/hdkey')
 //import wallet from 'ethereumjs-wallet'
 const didJWT = require('did-jwt');
 const config = require("./config.json");
 //habdle the creation of VC with atomic method for sleective disclosure
 import * as atomic from './atomic/main.js'
-
+const { ethers } = require("hardhat");
   
-function getDisclosedClaimsNumber(fract,claimsTot){
+function getDisclosedClaimsNumber(fract:number,claimsTot:number){
     if (fract==1){
         return claimsTot;
     }else{
@@ -28,11 +21,6 @@ function getDisclosedClaimsNumber(fract,claimsTot){
         }
     }
 }
-  
-
-
-const output_file_name="MPTC1-C.csv";
-const mnemonic = config.mnemonic;
 
 //setup the provider 
 console.log('Connecting to provider...');
@@ -56,21 +44,35 @@ const ethrDidResolver = getResolver.getResolver(
 );
 const didResolver = new Resolver(ethrDidResolver)
 
+//this function retrives the private key of an account given an index
+async function getPrivateKeyHardhat(index: number) {
+    const accounts = config.networks?.localhost?.accounts as string[];
+    if (!accounts) {
+        console.error("No accounts found in the configuration.");
+        return;
+    }
+
+    const privateKey = accounts[index];
+    console.log("Private Key:", privateKey);
+    return privateKey;
+}
 
 
 //function to create and return the object used to manage a DID
 const createDid = async (RegAddress:string, accountAddress:JsonRpcSigner, index:number, chainId = '0x7a69') => {
    
     //TODO make something that obtains key from accountaddress
-    const privateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; //Account 0
-
+    const privateKey = await getPrivateKeyHardhat (index);
+    if (!privateKey) {
+        console.error("error PrivateKey retrival.");
+        return;
+    }
     const publicKey = computePublicKey(privateKey, true);
     console.log("Public Key: "+publicKey);
     console.log("Private Key: "+privateKey);
     const identifier = `did:ethr:${chainId}:${publicKey}`;
-    const signer = provider.getSigner(index);
+    const signer = await provider.getSigner(index);
     let signJ=didJWT.ES256KSigner(Buffer.from(privateKey.slice(2), 'hex'),false);
-
 
     const ethrDid = new EthrDID({ 
         txSigner: signer,
@@ -114,7 +116,7 @@ const test = async (accounts : JsonRpcSigner[]) => {
 	}
 }
 
-provider.listAccounts().then((accounts) => {
+provider.listAccounts().then((accounts: JsonRpcSigner[]) => {
 	test(accounts);
 }).catch(console.error);
 
