@@ -12,11 +12,7 @@ import * as Atomic from './atomic/Atomic';
 const { ethers } = require("hardhat");
 //this is necessary for ot... basically simulates communication with a dummy socket curtesy of wyatt-howe
 var IO = require('./OT/io-example.js');
-
-
-const maxClaims = 4;
-const Runs = 1;
-const disclosedClaimsPercent = 0.75;
+const ascii = require('./OT/ascii.ts');
 
 function getDisclosedClaimsNumber(fract:number,claimsTot:number){
     if (fract==1){
@@ -119,6 +115,9 @@ const test = async (accounts : JsonRpcSigner[]) => {
         return;
     }
     
+    const maxClaims = 12;
+    //const Runs = 1;
+    const disclosedClaimsPercent = 0.75;
 
 /*
     //disclosedClaimsPercent is a percenteage 0.75 -> 75%
@@ -144,22 +143,43 @@ const test = async (accounts : JsonRpcSigner[]) => {
 */       
 
     //ok all good but now we want to apply ot, no v presentation 
+    /** compared to a verifiable presentation with this solution we accept that the vc may come from different issuers
+     * but since we want only a claim ,to gather data for some task, we only need the claim in question to be validated     */
     //print on a file? maybe? if i will test the performance difference...
     //also it would be nice if k-out of-n is possible, for now 1-out of-n
     const OT = require('1-out-of-n')(IO);
     const op_id = 'ot_atomic_vc'; 
+    const rec_choise = 1;
     
-    for (let i = 1; i < maxClaims; i++) {
-        //Issuer Create VC
-        console.log("---issuing new vc---");
-        let vcResult= await Atomic.issueVC(issuerDID,subjectDID,i);
-        //Subject verify the VC
-        console.log("---verifing vc---");
-        await Atomic.verifyVC(vcResult,didResolver);
-    }
+    //Issuer Create VC
+    console.log("---issuing new vc---");
+    let vcResult= await Atomic.issueVC(issuerDID,subjectDID,maxClaims); //returns an array of jwt
+    //Subject verify the VC
+    console.log("---verifing All vc---");
+    await Atomic.verifyVC(vcResult,didResolver);
+    //select a subset of vc's (jwt) 
+    const disclosedClaimsn = getDisclosedClaimsNumber(disclosedClaimsPercent, maxClaims); //n. of claims to disclose,based on percenteage and n. of claims of this iteration
+    const disclosedClaims = Atomic.getMultipleRandom(vcResult , disclosedClaimsn); //claims that i choose to disclose through ot
 
-    OT.send()
-    OT.receive()
+    //start OT protocol
+    OT.then(function (OT: { send: (arg0: Uint8Array[], arg1: number, arg2: string) => void; receive: (arg0: number, arg1: number, arg2: string) => Promise<Uint8Array> }) {
+        /*
+        *  The sender (vc holder) calls:
+        */
+        OT.send(disclosedClaims.map(ascii.to_array) , disclosedClaimsn, op_id);
+
+        /*
+        *  The receiver calls:
+        */
+        OT.receive(rec_choise, disclosedClaimsn, op_id).then(function (array: Uint8Array) {
+            const rec_vc : string = ascii.to_ascii(array);
+            console.log("\x1b[31m","obtained verified credential with ot, choise="+rec_choise,'\x1b[0m');
+            console.log('The chosen secret is:', rec_vc);
+            Atomic.verifysingleVC(rec_vc,didResolver);
+        });
+    });
+
+    
     
 
 }

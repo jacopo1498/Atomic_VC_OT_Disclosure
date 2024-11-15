@@ -13,7 +13,8 @@ const options = {
 export async function issueVC(issuer:EthrDID,subject: EthrDID,nClaims: number){
 	let jwt=[];
     console.log("creating verifiable credentials (jwt)...");
-	const atomicVCPayloads = await createVCPayload(subject,Math.pow(2, nClaims));
+	//const atomicVCPayloads = await createVCPayload(subject,Math.pow(2, nClaims));
+	const atomicVCPayloads = await createVCPayload(subject,nClaims);
 	for (let c = 0; c <atomicVCPayloads.length; c++) {
 		const jwtVC = await createVerifiableCredentialJwt(atomicVCPayloads[c], issuer as Issuer, options as {});
         //console.log(jwtVC);
@@ -34,7 +35,17 @@ export async function verifyVC(jwtSet: string[],didResolver: Resolver){
     return;
 }
 
-function getMultipleRandom(arr: string[], num: number) {
+export async function verifysingleVC(jwt: string,didResolver: Resolver){
+	console.log("verifing VC's...(single claims)");
+	const verifiedCredential= await verifyCredential(jwt, didResolver,{});
+	console.log("\x1b[44m","verified credential:",'\x1b[0m');
+	console.log(verifiedCredential)
+
+    return;
+}
+
+
+export function getMultipleRandom(arr: string[], num: number) {
   const shuffled = [...arr].sort(() => 0.5 - Math.random());
 
   return shuffled.slice(0, num);
