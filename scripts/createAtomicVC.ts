@@ -143,8 +143,10 @@ const test = async (accounts : JsonRpcSigner[]) => {
 */       
 
     //ok all good but now we want to apply ot, no v presentation 
-    /** compared to a verifiable presentation with this solution we accept that the vc may come from different issuers
-     * but since we want only a claim ,to gather data for some task, we only need the claim in question to be validated     */
+    /** compared to a verifiable presentation with this solution we accept that the vc may come from different issuer but since we want only a claim ,
+     * to gather data for some task, we only need the claim in question to be validated the recipient of each credential, 
+     * i.e., the subject’s DID in the credential, matches the DID of the subject who sent the presentation; ->use somebody else vc? 
+     * ideally there should be a way to identify subject before doing OT, or signing the VC before */
     //print on a file? maybe? if i will test the performance difference...
     //also it would be nice if k-out of-n is possible, for now 1-out of-n
     const OT = require('1-out-of-n')(IO);
