@@ -30,18 +30,22 @@ export async function verifyVC(jwtSet: string[],didResolver: Resolver){
     for (let c = 0; c <jwtSet.length; c++) {
 		const verifiedCredential= await verifyCredential(jwtSet[c], didResolver,{});
         console.log("\x1b[44m","verified credential:",'\x1b[0m');
-        console.log(verifiedCredential)
+        console.log(verifiedCredential.verified)
 	}
     return;
 }
 
-export async function verifysingleVC(jwt: string,didResolver: Resolver){
+export async function verifysingleVC(jwt: string,didResolver: Resolver) : Promise<Boolean>{
 	console.log("verifing VC's...(single claims)");
 	const verifiedCredential= await verifyCredential(jwt, didResolver,{});
+	if (!verifiedCredential){
+		console.error("error in the verificaton of the vc");
+		return false;
+	}
 	console.log("\x1b[44m","verified credential:",'\x1b[0m');
-	console.log(verifiedCredential)
+	console.log(verifiedCredential.verified)
 
-    return;
+    return true;
 }
 
 

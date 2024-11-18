@@ -5,6 +5,11 @@ Content Management Systems -> need to check your age/property to see if you are 
 i need to 
 
 generate atomic vc
-generate atomic 
-generate VP?
+generate sub signature
 use ot to disclose
+
+the subject’s DID in the credential, matches the DID of the subject who sent the presentation; ->use somebody else vc? 
+sign vc with your privat key so reciver can verify that is indeed you
+
+solution sign with privatekey associated with your did
+createne json with signature of payload + issuer signature
