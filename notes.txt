@@ -12,4 +12,4 @@ the subject’s DID in the credential, matches the DID of the subject who sent t
 sign vc with your privat key so reciver can verify that is indeed you
 
 solution sign with privatekey associated with your did
-createne json with signature of payload + issuer signature
+create json with signature of payload + issuer signature (metadata in the header)

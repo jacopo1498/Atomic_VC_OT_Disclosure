@@ -43,7 +43,7 @@ export async function verifysingleVC(jwt: string,didResolver: Resolver) : Promis
 		return false;
 	}
 	console.log("\x1b[44m","verified credential:",'\x1b[0m');
-	console.log(verifiedCredential.verified)
+	console.log(verifiedCredential)
 
     return true;
 }

@@ -3,7 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 
 const config: HardhatUserConfig = {
   solidity: "0.8.27",
-  //private keys should be closely guarded, this is just for testing! DO NOT harcode them in deployment!
+  //private keys should be closely guarded, this is just for testing/demoing! DO NOT harcode them in deployment!
   networks: {
     localhost: {
       url: "http://127.0.0.1:8545",

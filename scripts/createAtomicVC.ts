@@ -1,17 +1,17 @@
-import {Resolver, VerificationMethod} from 'did-resolver'
+import { Resolver } from 'did-resolver'
 import getResolver from 'ethr-did-resolver'
 import { EthrDID } from 'ethr-did'
 import { JsonRpcSigner } from 'ethers' 
 import { computePublicKey } from '@ethersproject/signing-key'
 //import wallet from 'ethereumjs-wallet'
 const didJWT = require('did-jwt');
-import { Signer, ES256KSigner, createJWS, verifyJWS } from 'did-jwt';
+import { ES256KSigner } from 'did-jwt';
 //this is necessary to retrive the privatekeys from hardhat accounts
 import { config } from "hardhat";
 //handle the creation of VC with atomic method for sleective disclosure
 import * as Atomic from './atomic/Atomic';
 //handle multigignature
-import {signJWTsWithSubjectKey,verifyMultiSigJWT} from './multiplesgn/multipleSgn';
+import { signJWTsWithSubjectKey, verifyMultiSigJWT } from './multiplesgn/multipleSgn';
 
 const { ethers } = require("hardhat");
 //this is necessary for ot... basically simulates communication with a dummy socket curtesy of wyatt-howe
@@ -60,7 +60,7 @@ async function getPrivateKeyHardhat(index: number) {
     }
 
     const privateKey = accounts[index];
-    console.log("Private Key:", privateKey);
+     console.log("Private Key:", privateKey);
     return privateKey;
 }
 
@@ -150,13 +150,15 @@ const test = async (accounts : JsonRpcSigner[]) => {
     //sign each vc with the private key associated to your did
     const subjectPrivateKey = await getPrivateKeyHardhat(1); //the owner of the did knows his private key
     const signedJWTs = await signJWTsWithSubjectKey(vcResult, subjectPrivateKey!, subjectDID);
-	for (let i = 0; i < signedJWTs.length; i++) {
-        //console.log("\x1b[42m",'Signed JWT by subject:','\x1b[0m');
-        //console.log(signedJWTs[i]);
+	/*
+    for (let i = 0; i < signedJWTs.length; i++) {
+        console.log("\x1b[42m",'Signed JWT by subject:','\x1b[0m');
+        console.log(signedJWTs[i]);
         if(! await verifyMultiSigJWT(signedJWTs[i],didResolver)){
             console.error("error in signature verification");
         }
     }
+    */
 
 
     //select a subset of vc's (jwt) 
@@ -170,15 +172,16 @@ const test = async (accounts : JsonRpcSigner[]) => {
         /*
         *  The sender (vc holder) calls:
         */
+        console.log ("\x1b[36m","sender sends all VC...",'\x1b[0m')
         OT.send(disclosedClaims.map(ascii.to_array) , disclosedClaimsn, op_id);
- 
+        console.log ("\x1b[36m","done!",'\x1b[0m')
         /*
         *  The receiver calls:
         */
         OT.receive(rec_choise, disclosedClaimsn, op_id).then(function (array: Uint8Array) {
             const rec_vc : string = ascii.to_ascii(array);
             console.log("\x1b[31m","obtained verified credential with ot, choise="+rec_choise,'\x1b[0m');
-            console.log('The chosen secret is:', rec_vc);
+            console.log("\x1b[31m",'The chosen secret is:','\x1b[0m', rec_vc);
             //Atomic.verifysingleVC(rec_vc,didResolver); //this needs to be reworked! two proofs now!
             if(! verifyMultiSigJWT(rec_vc,didResolver)){
                 console.error("error in signature verification");

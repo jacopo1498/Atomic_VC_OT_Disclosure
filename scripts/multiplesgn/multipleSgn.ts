@@ -54,7 +54,10 @@ export async function signJWTsWithSubjectKey(
             originalJWT: vcJwt,
             additionalSignatures: [
             {
-                header: { kid: `${subjectDID.did}#keys-1` }, // Ensure kid is included
+                header: { 
+                    kid: `${subjectDID.did}#keys-1` 
+                    
+                }, // new stuff can be added like
                 signature: newSignature,
             },
             ],
@@ -88,7 +91,8 @@ export async function verifyMultiSigJWT(
         if (!isOriginalValid) {
             throw new Error('Issuer signature is invalid');
         }
-            
+        console.log("\x1b[44m","original jwt singature verified",'\x1b[0m');
+
         // Split the original JWT
         const [header, payload, signature] = originalJWT.split('.');
         // Decode and parse the payload to get the subject DID
@@ -104,6 +108,8 @@ export async function verifyMultiSigJWT(
             
             // Resolve the DID in the kid field
             const additionalDid = additionalKid.split('#')[0];
+            //TO DO check if additional header did matches with internal did "sub"
+
             // console.log(payload.sub)
             const didResult = await didResolver.resolve(additionalDid);
             const didDocument = didResult.didDocument;
@@ -121,17 +127,19 @@ export async function verifyMultiSigJWT(
                 throw new Error(`Public key not found for kid: ${additionalKid}`);
             }
 
-
-            // Verify the additional signature
+            // 2. Verify the additional signature
             const isAdditionalValid = verifyJWS(
                 `${additionalSignature}`, //additional signature is basically another jwt: header.payload.signature
                 publicKey
             );
 
+            console.log("\x1b[44m","Subject singature verified",'\x1b[0m');
+
             //Verifies given JWS. If the JWS is valid, returns the public key that was used to sign the JWS, or throws an Error if none of the pubKeys match.
             if (!isAdditionalValid) {
                 throw new Error(`Additional signature for ${additionalKid} is invalid`);
             }
+
             console.log("\x1b[44m","verification of Issuer and Subject signature succeded!",'\x1b[0m');
             console.log(isAdditionalValid);
         }
