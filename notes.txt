@@ -13,3 +13,16 @@ sign vc with your privat key so reciver can verify that is indeed you
 
 solution sign with privatekey associated with your did
 create json with signature of payload + issuer signature (metadata in the header)
+
+avoid digital signature reuse/replay !
+ensure nonce is new
+ensure token is not expired
+ensure receiver is correct
+verify everything through the use of signature
+
+
+
+npx hardhat ignition deploy ./ignition/modules/deployDIDreg.ts --network localhost
+
+npx hardhat run scripts/createAtomicVC.ts --network localhost
+
