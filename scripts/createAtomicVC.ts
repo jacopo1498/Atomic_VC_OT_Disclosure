@@ -89,7 +89,7 @@ const test = async (accounts : JsonRpcSigner[]) => {
     const OT = require('1-out-of-n')(IO);
     const op_id = 'ot_atomic_vc'; 
     const rec_choise = 1;
-    const receiver = "transaction_receiver-01"; //context for the digita signature 
+    const receiver = "transaction_receiver-ver-did_sender-sub-did"; //context for the digital signature, here the dids of the sender and receiver should be used to uniquely bind it to this session
     //receiver also know the context, because i expect the incoming transaction to be for me...
 
     //Issuer Create VC

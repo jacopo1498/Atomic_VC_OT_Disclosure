@@ -1,5 +1,5 @@
 
-import { createVerifiableCredentialJwt, createVerifiablePresentationJwt, verifyPresentation,  verifyCredential, normalizeCredential, validateCredentialPayload, JwtCredentialPayload, Issuer, VerifiedCredential, JwtPresentationPayload } from 'did-jwt-vc';
+import { createVerifiableCredentialJwt, createVerifiablePresentationJwt, verifyPresentation,  verifyCredential, JwtCredentialPayload, Issuer, VerifiedCredential, JwtPresentationPayload } from 'did-jwt-vc';
 import { Resolver } from 'did-resolver';
 import { EthrDID } from 'ethr-did';
 
