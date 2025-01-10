@@ -74,7 +74,6 @@ const test = async (accounts : JsonRpcSigner[]) => {
     }
     
  
-    //ok all good but now we want to apply ot, no v presentation 
     /** compared to a verifiable presentation with this solution we accept that the vc may come from different issuer but since we want only a claim ,
      * to gather data for some task, we only need the claim in question to be validated the recipient of each credential, 
      * i.e., the subject’s DID in the credential, matches the DID of the subject who sent the presentation; ->use somebody else vc? 
@@ -82,14 +81,14 @@ const test = async (accounts : JsonRpcSigner[]) => {
      * 
      * solution: signature with my PrK
      * */
-    //print on a file? maybe? if i will test the performance difference...
-    //also it would be nice if k-out of-n is possible, for now 1-out of-n
+    //also it would be nice if k-out of-n is possible, idea for the future for now 1-out of-n
+	
     const maxClaims = 5;
     const disclosedClaimsPercent = 1;
     const OT = require('1-out-of-n')(IO);
     const op_id = 'ot_atomic_vc'; 
     const rec_choise = 1;
-    const receiver = "transaction_receiver-ver-did_sender-sub-did"; //context for the digital signature, here the dids of the sender and receiver should be used to uniquely bind it to this session
+    const receiver = "transaction_receiver-ver-did_sender-sub_did"; //context for the digital signature, here the dids of the sender and receiver should be used to uniquely bind it to this session
     //receiver also know the context, because i expect the incoming transaction to be for me...
 
     //Issuer Create VC
@@ -104,7 +103,8 @@ const test = async (accounts : JsonRpcSigner[]) => {
     const subjectPrivateKey = await getPrivateKeyHardhat(1); //the owner of the did knows his private key
     const signedJWTs = await signJWTsWithSubjectKey({ VC: vcResult, subjectPrivateKey: subjectPrivateKey!, subDID: subjectDID, audience: receiver });
 
-	/*
+/*
+    //check all VC
     for (let i = 0; i < signedJWTs.length; i++) {
         console.log("\x1b[42m",'Signed JWT by subject:','\x1b[0m');
         console.log(signedJWTs[i]);
@@ -112,7 +112,7 @@ const test = async (accounts : JsonRpcSigner[]) => {
             console.error("error in signature verification");
         }
     }
-    */
+*/
         //select a subset of vc's (jwt) 
         const disclosedClaimsn = getDisclosedClaimsNumber(disclosedClaimsPercent, maxClaims); //n. of claims to disclose,based on percenteage and n. of claims of this iteration
         const disclosedClaims = Atomic.getMultipleRandom(signedJWTs , disclosedClaimsn); //claims that i choose to disclose through ot
