@@ -20,7 +20,9 @@ ensure token is not expired
 ensure receiver is correct
 verify everything through the use of signature
 
+Commands 
 
+npx hardhat hode
 
 npx hardhat ignition deploy ./ignition/modules/deployDIDreg.ts --network localhost
 

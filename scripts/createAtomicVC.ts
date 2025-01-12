@@ -7,7 +7,7 @@ const didJWT = require('did-jwt');
 //handle the creation of VC with atomic method for sleective disclosure
 import * as Atomic from './atomic/Atomic';
 //handle multigignature
-import { signJWTsWithSubjectKey, verifyMultiSigJWT } from './multiplesgn/multipleSgn';
+import { listVCDetails, signJWTsWithSubjectKey, verifyMultiSigJWT } from './multiplesgn/multipleSgn';
 import { getPrivateKeyHardhat } from './getPrivateKeyHardhat'
 import { createDid } from './createDid'
 
@@ -55,9 +55,9 @@ const test = async (accounts : JsonRpcSigner[]) => {
 	let subjectAddress=accounts[1];
 	let verifierAddress=accounts[2];
 
-	console.log("Issuer EOA:"+issuerAddress);
-	console.log("Subject EOA:"+subjectAddress);
-	console.log("Verifier EOA:"+verifierAddress);
+	console.log("Issuer EOA:"+issuerAddress.toString());
+	console.log("Subject EOA:"+subjectAddress.toString());
+	console.log("Verifier EOA:"+verifierAddress.toString());
 
 	let issuerDID = await createDid(RegAddress, issuerAddress, 0);
 	let subjectDID = await createDid(RegAddress, subjectAddress, 1);
@@ -84,20 +84,29 @@ const test = async (accounts : JsonRpcSigner[]) => {
     //also it would be nice if k-out of-n is possible, idea for the future for now 1-out of-n
 	
     const maxClaims = 5;
-    const disclosedClaimsPercent = 1;
+    const disclosedClaimsPercent = 1; //from 0 to 1 (ex. 0.5 = 50%)
     const OT = require('1-out-of-n')(IO);
     const op_id = 'ot_atomic_vc'; 
     const rec_choise = 1;
-    const receiver = "transaction_receiver-ver-did_sender-sub_did"; //context for the digital signature, here the dids of the sender and receiver should be used to uniquely bind it to this session
-    //receiver also know the context, because i expect the incoming transaction to be for me...
+    const receiver = "transaction_receiver-did"; //context for the digital signature, here the dids of the sender and receiver should be used to uniquely bind it to this session
+    //receiver also knows the context, because i expect the incoming transaction to be for me...
 
     //Issuer Create VC
-    console.log("---issuing new VC---");
+    console.log("\x1b[43m","---issuing new VC---",'\x1b[0m');
     let vcResult= await Atomic.issueVC(issuerDID,subjectDID,maxClaims); //returns an array of jwt
-    //Subject verify the VC
-    console.log("---verifing all VC---");
-    await Atomic.verifyVC(vcResult,didResolver);
 
+    //show a VC 
+    console.log("\x1b[43m","Example:",'\x1b[0m');
+    const decodedVC = didJWT.decodeJWT(vcResult[0]);
+    console.log(decodedVC );
+    const credentialSubject = decodedVC.payload.vc.credentialSubject;
+    console.log("credentialSubject:");
+    console.log(credentialSubject );
+    console.log("\n");
+
+    //Subject verify the VC
+    console.log("\x1b[43m","---verifing all VC---",'\x1b[0m');
+    await Atomic.verifyVC(vcResult,didResolver);
 
     //sign each vc with the private key associated to your did
     const subjectPrivateKey = await getPrivateKeyHardhat(1); //the owner of the did knows his private key
@@ -113,35 +122,42 @@ const test = async (accounts : JsonRpcSigner[]) => {
         }
     }
 */
-        //select a subset of vc's (jwt) 
-        const disclosedClaimsn = getDisclosedClaimsNumber(disclosedClaimsPercent, maxClaims); //n. of claims to disclose,based on percenteage and n. of claims of this iteration
-        const disclosedClaims = Atomic.getMultipleRandom(signedJWTs , disclosedClaimsn); //claims that i choose to disclose through ot
-        
-     
-        //start OT protocol
-        console.log("\x1b[31m","---start OT protocol---",'\x1b[0m');
+    //select a subset of vc's (jwt) 
+    const disclosedClaimsn = getDisclosedClaimsNumber(disclosedClaimsPercent, maxClaims); //n. of claims to disclose,based on percenteage and n. of claims of this iteration
+    const disclosedClaims = Atomic.getMultipleRandom(signedJWTs , disclosedClaimsn); //claims that i choose to disclose through ot
     
-        OT.then(function (OT: { send: (arg0: Uint8Array[], arg1: number, arg2: string) => void; receive: (arg0: number, arg1: number, arg2: string) => Promise<Uint8Array> }) {
-            /*
-            *  The sender (vc holder) calls:
-            */
-            console.log ("\x1b[36m","sender sends all VC through OT...",'\x1b[0m')
-            OT.send(disclosedClaims.map(ascii.to_array) , disclosedClaimsn, op_id);
-            console.log ("\x1b[36m","done!",'\x1b[0m')
-            /*
-            *  The receiver calls:
-            */
-            OT.receive(rec_choise, disclosedClaimsn, op_id).then(async function (array: Uint8Array) {
-                const received_vc : string = ascii.to_ascii(array);
-                console.log("\x1b[31m","receiver obtains only one verified credential with ot, choise="+rec_choise,'\x1b[0m');
-                console.log("\x1b[31m",'The chosen secret is:','\x1b[0m', received_vc);
-                if(! await verifyMultiSigJWT({multiSigJWT: received_vc,didResolver: didResolver,expectedContext: receiver})){
-                    console.error("error in signature verification");
-                }else{
-                    console.log("\x1b[31m",'---AtomicVC successfully received---','\x1b[0m');
-                }
-            });
+    //start OT protocol
+    console.log("\n \n");
+    console.log("\x1b[31m","---start OT protocol---",'\x1b[0m');
+    console.log("\n \n");
+
+    OT.then(function (OT: { send: (arg0: Uint8Array[], arg1: number, arg2: string) => void; receive: (arg0: number, arg1: number, arg2: string) => Promise<Uint8Array> }) {
+        /*
+        *  The sender (vc holder) calls:
+        */
+        console.log ("\x1b[36m","sender shows avaliable VC to choose to Receiver",'\x1b[0m');
+        listVCDetails(disclosedClaims);
+        console.log("\n");
+        console.log ("\x1b[36m","sender sends all VC through OT...",'\x1b[0m');
+        OT.send(disclosedClaims.map(ascii.to_array) , disclosedClaimsn, op_id);
+        console.log ("\x1b[36m","done!",'\x1b[0m');
+        console.log("\n");
+
+        /*
+        *  The receiver calls:
+        */
+        OT.receive(rec_choise, disclosedClaimsn, op_id).then(async function (array: Uint8Array) {
+            const received_vc : string = ascii.to_ascii(array);
+            console.log("\x1b[35m","receiver obtains only one verified credential with ot, choise="+rec_choise,'\x1b[0m');
+            console.log("\x1b[35m",'The received secret is:','\x1b[0m', received_vc);
+            if(! await verifyMultiSigJWT({multiSigJWT: received_vc,didResolver: didResolver, audience: receiver })){
+                console.error("error in signature verification");
+            }else{
+                console.log("\n");
+                console.log("\x1b[31m",'---AtomicVC successfully received---','\x1b[0m');
+            }
         });
+    });
 
  
 }
