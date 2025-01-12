@@ -9,6 +9,7 @@ import { ES256KSigner, createJWS, verifyJWS } from 'did-jwt';
 import * as Atomic from '../atomic/Atomic';
 import {verifyContext, verifyExpiration, verifyIssuedAt, verifyUniqueID } from "./utilis" 
 import { jwtDecode , JwtPayload} from "jwt-decode";
+import { decodeJWT } from 'did-jwt';
 //for decoding jws payload
 import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs
 
@@ -70,7 +71,9 @@ export async function signJWTsWithSubjectKey(
         const uniqueid = uuidv4();
         const issued = Math.floor(Date.now() / 1000);
         const expiration = issued + (60 * 5);
-        const  additionalPayload = { jti: uniqueid, iat: issued, exp: expiration, context: audience }; //prepare the ds data to be retrived from jwt
+        const context = audience + "_sender_" + subDID.did;
+        //console.log("\x1b[44m","context:"+context,'\x1b[0m');
+        const  additionalPayload = { jti: uniqueid, iat: issued, exp: expiration, context: context }; //prepare the ds data to be retrived from jwt
         // Replace dots in the original JWT (. messes up with the jws)
         const originalJWTWithoutDots = vcJwt.replace(/\./g, '|');
         // Prepare the payload
@@ -108,7 +111,7 @@ export async function signJWTsWithSubjectKey(
 
 
 export async function verifyMultiSigJWT(
-{ multiSigJWT, didResolver, expectedContext }: { multiSigJWT: string; didResolver: Resolver; expectedContext: string;}   
+{ multiSigJWT, didResolver, audience }: { multiSigJWT: string; didResolver: Resolver; audience: string},
 ): Promise<boolean> {
 
     interface MySign {
@@ -129,17 +132,22 @@ export async function verifyMultiSigJWT(
             throw new Error('No additional signatures found');
         }
 
-      
+        
+
 
         for (const { header: additionalHeader, signature: additionalSignature } of additionalSignatures) {
            
             const decodedJWSPayload = jwtDecode<MySign>(additionalSignature);
+            //if the JWS is not in a correct format a error is raised here
             console.log("\x1b[42m",'Payload of the JWS:','\x1b[0m');
             console.log(decodedJWSPayload);
 
             const originalJWTencoded = (decodedJWSPayload.originalJWT as string).replace(/\|/g, '.');
             const originalJWT = jwtDecode(originalJWTencoded);
             const subject = originalJWT.sub;
+
+            const expectedContext = audience + "_sender_" + subject;
+            //console.log("\x1b[44m","Econtext:"+expectedContext,'\x1b[0m');
 
             if (!subject) {
                 throw new Error("subject not extracted");
@@ -205,3 +213,58 @@ export async function verifyMultiSigJWT(
     return false;
     }
 }
+
+// Function to list details of VCs
+export function listVCDetails(multiSigJWT: string[]): void {
+
+	interface MySign {
+        jti: string;
+        iat: number;
+        exp: number;
+        context: string;
+        originalJWT: string;
+    }
+
+    multiSigJWT.forEach((signedJwt, index) => {
+        try {
+
+			const parsedJWT = JSON.parse(signedJwt);
+            const { additionalSignatures } = parsedJWT;
+			if (!additionalSignatures || additionalSignatures.length === 0) {
+				throw new Error('No additional signatures found');
+			}
+
+			for (const { header: additionalHeader, signature: additionalSignature } of additionalSignatures) {
+				const decodedJWSPayload = jwtDecode<MySign>(additionalSignature);
+				const originalJWTencoded = (decodedJWSPayload.originalJWT as string).replace(/\|/g, '.');
+
+				 // Decode the VC
+				 const decodedVC = decodeJWT(originalJWTencoded);
+
+				 // Extract details
+				 const subject = decodedVC.payload.sub;
+				 const issuer = decodedVC.payload.iss;
+				 const claimNames = Object.keys(decodedVC.payload.vc.credentialSubject);
+				 const issuanceDate = decodedVC.payload.nbf 
+					 ? new Date(decodedVC.payload.nbf * 1000).toUTCString() 
+					 : "Not specified";
+				 const expirationDate = decodedVC.payload.exp 
+					 ? new Date(decodedVC.payload.exp * 1000).toUTCString() 
+					 : "Not specified";
+	 
+				 // Display the VC details
+				 console.log(`VC #${index + 1}:`);
+				 console.log(`- Subject: ${subject}`);
+				 console.log(`- Issuer: ${issuer}`);
+				 console.log(`- Claim Names: ${claimNames.join(", ")}`);
+				 console.log(`- Issuance Date: ${issuanceDate}`);
+				 console.log(`- Expiration Date: ${expirationDate}`);
+				 console.log('------------------------------------');
+			}
+			 } catch (error) {
+				 console.error(`Error decoding VC #${index + 1}:`, error);
+			 }
+		 });
+}
+
+

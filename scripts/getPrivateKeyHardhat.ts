@@ -9,6 +9,6 @@ export async function getPrivateKeyHardhat(index: number) {
     }
 
     const privateKey = accounts[index];
-    console.log("Private Key:", privateKey);
+    console.log("Signing Private Key:", privateKey);
     return privateKey;
 }
