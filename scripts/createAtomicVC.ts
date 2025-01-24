@@ -84,7 +84,7 @@ const test = async (accounts : JsonRpcSigner[]) => {
     //also it would be nice if k-out of-n is possible, idea for the future for now 1-out of-n
 	
     const maxClaims = 5;
-    const disclosedClaimsPercent = 1; //from 0 to 1 (ex. 0.5 = 50%)
+    const disclosedClaimsPercent = 0.6; //from 0 to 1 (ex. 0.5 = 50%)
     const OT = require('1-out-of-n')(IO);
     const op_id = 'ot_atomic_vc'; 
     const rec_choise = 1;
@@ -108,9 +108,13 @@ const test = async (accounts : JsonRpcSigner[]) => {
     console.log("\x1b[43m","---verifing all VC---",'\x1b[0m');
     await Atomic.verifyVC(vcResult,didResolver);
 
+    //select a subset of vc's (jwt) 
+    const disclosedClaimsn = getDisclosedClaimsNumber(disclosedClaimsPercent, maxClaims); //n. of claims to disclose,based on percenteage and n. of claims of this iteration
+    const disclosedClaimstoSign = Atomic.getMultipleRandom(vcResult , disclosedClaimsn); //claims that i choose to disclose through ot
+
     //sign each vc with the private key associated to your did
     const subjectPrivateKey = await getPrivateKeyHardhat(1); //the owner of the did knows his private key
-    const signedJWTs = await signJWTsWithSubjectKey({ VC: vcResult, subjectPrivateKey: subjectPrivateKey!, subDID: subjectDID, audience: receiver });
+    const disclosedClaims = await signJWTsWithSubjectKey({ VC: disclosedClaimstoSign, subjectPrivateKey: subjectPrivateKey!, subDID: subjectDID, audience: receiver });
 
 /*
     //check all VC
@@ -122,9 +126,7 @@ const test = async (accounts : JsonRpcSigner[]) => {
         }
     }
 */
-    //select a subset of vc's (jwt) 
-    const disclosedClaimsn = getDisclosedClaimsNumber(disclosedClaimsPercent, maxClaims); //n. of claims to disclose,based on percenteage and n. of claims of this iteration
-    const disclosedClaims = Atomic.getMultipleRandom(signedJWTs , disclosedClaimsn); //claims that i choose to disclose through ot
+    
     
     //start OT protocol
     console.log("\n \n");
