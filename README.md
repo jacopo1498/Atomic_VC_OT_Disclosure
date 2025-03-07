@@ -1,4 +1,5 @@
-#SDOT
+# SDOT
+
 ## Selective Disclosure of atomic credentials through Oblivious Transfer
 
 A proof of concept protocol to exchange claims through OT (1-out of-n).
