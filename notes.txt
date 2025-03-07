@@ -2,25 +2,7 @@ USECASES
 
 Content Management Systems -> need to check your age/property to see if you are an adult
 
-i need to 
-
-generate atomic vc
-generate sub signature
-use ot to disclose
-
-the subject’s DID in the credential, matches the DID of the subject who sent the presentation; ->use somebody else vc? 
-sign vc with your privat key so reciver can verify that is indeed you
-
-solution sign with privatekey associated with your did
-create json with signature of payload + issuer signature (metadata in the header)
-
-avoid digital signature reuse/replay !
-ensure nonce is new
-ensure token is not expired
-ensure receiver is correct
-verify everything through the use of signature
-
-Commands 
+Commands -> HOW TO USE THIS PROJECT 
 
 npx hardhat hode
 
